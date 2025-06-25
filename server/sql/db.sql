@@ -293,7 +293,8 @@ EXECUTE FUNCTION log_cancelamento();
 
 
 INSERT INTO usuarios (nome, email, senha) VALUES
-  ('usuario', 'usuario@gmail.com', 'senha123');
+  ('usuario', 'usuario@gmail.com', 'senha123'),
+  ('admin', 'admin@gmail.com', 'admin');
 
 INSERT INTO itens_cardapio (nome, descricao, preco) VALUES
   ('Pizza Margherita', 'Pizza com molho de tomate, mussarela e manjericao', 35.00),
