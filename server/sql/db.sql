@@ -9,6 +9,7 @@ CREATE TABLE usuarios (
   nome VARCHAR(100) NOT NULL,
   email VARCHAR(100) NOT NULL UNIQUE,
   senha VARCHAR(100) NOT NULL,
+  is_admin BOOLEAN DEFAULT FALSE,
   criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -292,9 +293,9 @@ EXECUTE FUNCTION log_cancelamento();
 
 
 
-INSERT INTO usuarios (nome, email, senha) VALUES
-  ('usuario', 'usuario@gmail.com', 'senha123'),
-  ('admin', 'admin@gmail.com', 'admin');
+INSERT INTO usuarios (nome, email, senha, is_admin) VALUES
+  ('usuario', 'usuario@gmail.com', 'senha123', FALSE),
+  ('admin', 'admin@gmail.com', 'admin', TRUE);
 
 INSERT INTO itens_cardapio (nome, descricao, preco) VALUES
   ('Pizza Margherita', 'Pizza com molho de tomate, mussarela e manjericao', 35.00),

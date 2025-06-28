@@ -17,15 +17,20 @@ export default function Login() {
       );
       const data = await res.json();
       if (data && data.length > 0) {
-        // Set a cookie and localStorage (unsecure, for demo only)
         document.cookie = "isAuthenticated=true; path=/";
-        localStorage.setItem("isAuthenticated", "true");
+        if (data[0].is_admin) {
+          document.cookie = "isAdmin=true; path=/";
+        } else {
+          document.cookie =
+            "isAdmin=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+        }
         router.push("/in/dashboard");
       } else {
         setError("Credenciais inválidas.");
-        console.log("deu ruim");
       }
-    } catch (error) {}
+    } catch (error) {
+      setError("Erro ao tentar logar.");
+    }
   }
 
   return (

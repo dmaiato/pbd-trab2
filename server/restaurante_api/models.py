@@ -80,6 +80,7 @@ class Usuarios(models.Model):
     email = models.CharField(unique=True, max_length=100)
     senha = models.CharField(max_length=100)
     criado_em = models.DateTimeField(blank=True, null=True)
+    is_admin = models.BooleanField(default=False)
 
     class Meta:
         managed = False
