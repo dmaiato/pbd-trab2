@@ -8,7 +8,7 @@ export default function RootLayout({
   return (
     <>
       <Header />
-      <main className="min-h-screen bg-slate-900 flex items-center justify-center">
+      <main className="min-h-screen bg-slate-800 flex items-center justify-center">
         {children}
       </main>
     </>

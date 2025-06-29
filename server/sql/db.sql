@@ -85,32 +85,42 @@ BEGIN
     RAISE EXCEPTION 'Cliente não encontrado';
   END IF;
 
+  -- Cria um novo pedido com status 'em preparo'
   INSERT INTO pedidos (usuario_id, status_id, total)
   VALUES (cliente_id, (SELECT id FROM status_pedidos WHERE nome = 'em preparo'), 0)
   RETURNING id INTO novo_pedido_id;
 
+  -- Verifica se a lista de itens está vazia
   FOR item IN SELECT * FROM jsonb_array_elements(itens)
   LOOP
     item_id := (item->>'id')::INT;
     quantidade := (item->>'quantidade')::INT;
-    preco := (item->>'preco')::DECIMAL;
 
+    -- Verifica se o item existe e está disponível
     IF NOT EXISTS (SELECT 1 FROM itens_cardapio WHERE id = item_id AND disponivel = TRUE) THEN
       RAISE EXCEPTION 'Item % não encontrado ou indisponível', item_id;
     END IF;
 
+    -- Verifica se a quantidade solicitada está disponível no estoque
     IF (SELECT quantidade FROM estoque WHERE item_id = item_id) < quantidade THEN
       RAISE EXCEPTION 'Estoque insuficiente para o item %', item_id;
     END IF;
 
+    -- Obtém o preço do item
+    SELECT preco INTO preco FROM itens_cardapio WHERE id = item_id;
+
+    -- Insere o item no pedido
     INSERT INTO itens_pedido (pedido_id, item_id, quantidade, preco)
     VALUES (novo_pedido_id, item_id, quantidade, preco);
 
+    -- Atualiza o total do pedido
     total := total + (preco * quantidade);
 
+    -- Atualiza o estoque
     UPDATE estoque SET quantidade = quantidade - quantidade WHERE item_id = item_id;
   END LOOP;
 
+  -- Atualiza o total do pedido
   UPDATE pedidos SET total = total WHERE id = novo_pedido_id;
 
   RETURN novo_pedido_id;

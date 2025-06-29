@@ -1,4 +1,5 @@
 "use client";
+
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
@@ -12,19 +13,24 @@ export default function Login() {
     e.preventDefault();
     setError("");
     try {
+      // crimes de segurança
       const res = await fetch(
         `http://localhost:8000/api/usuarios/?username=${username}&password=${password}`
       );
       const data = await res.json();
+
       if (data && data.length > 0) {
         document.cookie = "isAuthenticated=true; path=/";
+        document.cookie = `userId=${data[0].id}; path=/`;
+
         if (data[0].is_admin) {
           document.cookie = "isAdmin=true; path=/";
+          router.push("/in/admin/dashboard");
         } else {
           document.cookie =
             "isAdmin=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+          router.push("/in/usuario/cardapio");
         }
-        router.push("/in/dashboard");
       } else {
         setError("Credenciais inválidas.");
       }
@@ -52,9 +58,9 @@ export default function Login() {
           placeholder="Password"
           type="password"
         />
-        <div className="h-6 text-rose-600 mb-2">{error && <p>{error}</p>}</div>
+        <div className="h-6 text-rose-800 mb-2">{error && <p>{error}</p>}</div>
         <button
-          className="bg-emerald-500 p-2 rounded-sm text-gray-50 font-medium cursor-pointer hover:bg-emerald-600"
+          className="bg-emerald-700 p-2 rounded-sm text-gray-50 font-medium cursor-pointer hover:bg-emerald-600"
           type="submit"
         >
           Login

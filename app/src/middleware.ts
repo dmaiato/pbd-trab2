@@ -15,6 +15,11 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL("/in/dashboard", request.url));
   }
 
+  // admin não pode acessar fluxo de usuario
+  if (isAdmin && request.nextUrl.pathname.startsWith("/in/usuario")) {
+    return NextResponse.redirect(new URL("/in/admin/dashboard", request.url));
+  }
+
   // impede que usuários logados acessem /login
   if (isAuthenticated && request.nextUrl.pathname === "/login") {
     return NextResponse.redirect(new URL("/in/dashboard", request.url));

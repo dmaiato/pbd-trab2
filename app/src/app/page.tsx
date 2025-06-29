@@ -1,13 +1,13 @@
-"use client";
+import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
 
-import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+export default async function Home() {
+  const cookieStore = await cookies();
+  const isAdmin = cookieStore.get("isAdmin")?.value === "true";
 
-export default function Home() {
-  const router = useRouter();
-
-  useEffect(() => {
-    router.push("/login");
-  }, []);
-  return <></>;
+  if (isAdmin) {
+    redirect("/in/admin/dashboard");
+  } else {
+    redirect("/in/usuario/cardapio");
+  }
 }
