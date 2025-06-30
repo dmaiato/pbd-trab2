@@ -24,8 +24,7 @@ Este projeto é um sistema completo para gerenciamento de pedidos de restaurante
 ### 1. Clone o repositório
 
 ```bash
-git clone <url-do-repositorio>
-cd <nome-da-pasta>
+git clone https://github.com/dmaiato/pbd-trab2/ ..
 ```
 
 ### 2. Backend (Django)
