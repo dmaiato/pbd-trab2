@@ -10,11 +10,21 @@ class StatusPedidosSerializer(serializers.ModelSerializer):
   class Meta:
     model = StatusPedidos
     fields = '__all__'
+    
+class ItensPedidoWithNomeSerializer(serializers.ModelSerializer):
+  nome = serializers.CharField(source="item.nome", read_only=True)
+
+  class Meta:
+    model = ItensPedido
+    fields = ['id', 'item', 'nome', 'quantidade', 'preco']
 
 class PedidosSerializer(serializers.ModelSerializer):
+  status_nome = serializers.CharField(source="status.nome", read_only=True)
+  itens = ItensPedidoWithNomeSerializer(many=True, read_only=True)
+
   class Meta:
     model = Pedidos
-    fields = '__all__'
+    fields = ['id', 'usuario', 'status', 'status_nome', 'total', 'criado_em', 'atualizado_em', 'itens']
 
 class ItensCardapioSerializer(serializers.ModelSerializer):
   class Meta:

@@ -70,81 +70,103 @@ CREATE TABLE logs (
 
 -- FUNÇÕES
 
+-- 0.1 Criar o JSONB que servirá de parâmetro em registrar_pedido
+CREATE OR REPLACE FUNCTION criar_item_pedido_json(
+    item_id_aux INT,
+    quantidade_aux INT
+) RETURNS JSONB AS $$
+DECLARE
+    item_json JSONB;
+BEGIN
+    -- Verifica se o item existe e está disponivel
+    IF NOT EXISTS (SELECT 1 FROM itens_cardapio WHERE id = item_id_aux AND disponivel = TRUE) THEN
+      RAISE EXCEPTION 'Item % não encontrado ou indisponível', item_id_aux;
+    END IF;
+
+    -- Cria o objeto JSONB
+    item_json := jsonb_build_array(
+        jsonb_build_object(
+            'id', item_id_aux,
+            'quantidade', quantidade_aux
+        )
+    );
+
+    RETURN item_json;
+END;
+$$ LANGUAGE plpgsql;
+
 -- 1. Registrar Pedido
-CREATE OR REPLACE FUNCTION registrar_pedido(cliente_id INT, itens JSONB)
+CREATE OR REPLACE FUNCTION registrar_pedido(cliente_id_aux INT, itens_aux JSONB)
 RETURNS INT AS $$
 DECLARE
-  novo_pedido_id INT;
-  total DECIMAL(10,2) := 0;
-  item JSONB;
-  item_id INT;
-  quantidade INT;
-  preco DECIMAL(10,2);
+  novo_pedido_id_aux INT;
+  total_aux DECIMAL(10,2) := 0;
+  item_aux JSONB;
+  item_id_aux INT;
+  quantidade_aux INT;
+  preco_aux DECIMAL(10,2);
 BEGIN
-  IF NOT EXISTS (SELECT 1 FROM usuarios WHERE id = cliente_id) THEN
+  IF NOT EXISTS (SELECT 1 FROM usuarios WHERE id = cliente_id_aux) THEN
     RAISE EXCEPTION 'Cliente não encontrado';
   END IF;
 
   -- Cria um novo pedido com status 'em preparo'
   INSERT INTO pedidos (usuario_id, status_id, total)
-  VALUES (cliente_id, (SELECT id FROM status_pedidos WHERE nome = 'em preparo'), 0)
-  RETURNING id INTO novo_pedido_id;
+  VALUES (cliente_id_aux, (SELECT id FROM status_pedidos WHERE nome = 'em preparo'), 0)
+  RETURNING id INTO novo_pedido_id_aux;
 
   -- Verifica se a lista de itens está vazia
-  FOR item IN SELECT * FROM jsonb_array_elements(itens)
+  FOR item_aux IN SELECT * FROM jsonb_array_elements(itens_aux)
   LOOP
-    item_id := (item->>'id')::INT;
-    quantidade := (item->>'quantidade')::INT;
+    item_id_aux := (item_aux->>'id')::INT;
+    quantidade_aux := (item_aux->>'quantidade')::INT;
 
     -- Verifica se o item existe e está disponível
-    IF NOT EXISTS (SELECT 1 FROM itens_cardapio WHERE id = item_id AND disponivel = TRUE) THEN
-      RAISE EXCEPTION 'Item % não encontrado ou indisponível', item_id;
-    END IF;
-
-    -- Verifica se a quantidade solicitada está disponível no estoque
-    IF (SELECT quantidade FROM estoque WHERE item_id = item_id) < quantidade THEN
-      RAISE EXCEPTION 'Estoque insuficiente para o item %', item_id;
-    END IF;
+    IF NOT EXISTS (SELECT 1 FROM itens_cardapio WHERE id = item_id_aux AND disponivel = TRUE) THEN
+      RAISE EXCEPTION 'Item % não encontrado ou indisponível', item_id_aux;
+    END IF; -- Essa verificação é feita na func criar_item_pedido_json, avaliar a possibilidade de usar a func no backend e deletar essa verificação duplicada.
 
     -- Obtém o preço do item
-    SELECT preco INTO preco FROM itens_cardapio WHERE id = item_id;
+    SELECT preco INTO preco_aux FROM itens_cardapio WHERE id = item_id_aux;
 
     -- Insere o item no pedido
     INSERT INTO itens_pedido (pedido_id, item_id, quantidade, preco)
-    VALUES (novo_pedido_id, item_id, quantidade, preco);
+    VALUES (novo_pedido_id_aux, item_id_aux, quantidade_aux, preco_aux);
 
     -- Atualiza o total do pedido
-    total := total + (preco * quantidade);
+    total_aux := total_aux + (preco_aux * quantidade_aux);
 
     -- Atualiza o estoque
-    UPDATE estoque SET quantidade = quantidade - quantidade WHERE item_id = item_id;
+    UPDATE estoque SET quantidade = quantidade - quantidade_aux WHERE item_id = item_id_aux;
   END LOOP;
 
   -- Atualiza o total do pedido
-  UPDATE pedidos SET total = total WHERE id = novo_pedido_id;
+  UPDATE pedidos SET total = total_aux WHERE id = novo_pedido_id_aux;
 
-  RETURN novo_pedido_id;
+  RETURN novo_pedido_id_aux;
 
 EXCEPTION
   WHEN OTHERS THEN
-    DELETE FROM pedidos WHERE id = novo_pedido_id;
+    DELETE FROM pedidos WHERE id = novo_pedido_id_aux;
     RAISE;
 END;
 $$ LANGUAGE plpgsql;
 
 -- 2. Calcular Total do Pedido
-CREATE OR REPLACE FUNCTION calcular_total_pedido(pedido_id INT)
+CREATE OR REPLACE FUNCTION calcular_total_pedido(pedido_id_aux INT)
 RETURNS DECIMAL(10,2) AS $$
 DECLARE
-  total DECIMAL(10,2);
+  total_aux DECIMAL(10,2);
 BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pedidos WHERE id = pedido_id) THEN
+  IF NOT EXISTS (SELECT 1 FROM pedidos WHERE id = pedido_id_aux) THEN
     RAISE EXCEPTION 'Pedido não encontrado';
   END IF;
 
-  SELECT SUM(i.preco * i.quantidade) INTO total FROM itens_pedido i WHERE i.pedido_id = pedido_id;
+  SELECT SUM(i.preco * i.quantidade) INTO total_aux 
+  FROM itens_pedido i 
+  WHERE i.pedido_id = pedido_id_aux;
 
-  RETURN COALESCE(total, 0);
+  RETURN COALESCE(total_aux, 0);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -154,7 +176,7 @@ RETURNS TABLE(id INT, usuario_id INT, status_id INT, total DECIMAL(10,2), criado
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM status_pedidos WHERE nome = status) THEN
     RAISE EXCEPTION 'Status % não encontrado', status;
-  END IF;
+  END IF; 
 
   RETURN QUERY
   SELECT p.id, p.usuario_id, p.status_id, p.total, p.criado_em
@@ -165,10 +187,11 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- 4. Trocar Status do Pedido
-CREATE OR REPLACE FUNCTION trocar_status_pedido(pedido_id INT, novo_status TEXT)
+CREATE OR REPLACE FUNCTION trocar_status_pedido(pedido_id INT, novo_status_id INT)
 RETURNS VOID AS $$
 DECLARE
   status_atual TEXT;
+  novo_status_nome TEXT;
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM pedidos WHERE id = pedido_id) THEN
     RAISE EXCEPTION 'Pedido % não encontrado', pedido_id;
@@ -178,26 +201,22 @@ BEGIN
   JOIN status_pedidos s ON p.status_id = s.id
   WHERE p.id = pedido_id;
 
-  IF NOT EXISTS (SELECT 1 FROM status_pedidos WHERE nome = novo_status) THEN
-    RAISE EXCEPTION 'Status % não encontrado', novo_status;
+  IF NOT EXISTS (SELECT 1 FROM status_pedidos WHERE id = novo_status_id) THEN
+    RAISE EXCEPTION 'Status id % não encontrado', novo_status_id;
   END IF;
 
-  IF (status_atual = 'em preparo' AND novo_status NOT IN ('pronto', 'cancelado')) OR
-     (status_atual = 'pronto' AND novo_status NOT IN ('entregue', 'cancelado')) OR
-     (status_atual = 'entregue' AND novo_status != 'finalizado') THEN
-    RAISE EXCEPTION 'Transição de status inválida de % para %', status_atual, novo_status;
+  SELECT nome INTO novo_status_nome FROM status_pedidos WHERE id = novo_status_id;
+
+  IF (status_atual = 'em preparo' AND novo_status_nome NOT IN ('pronto', 'cancelado')) OR
+     (status_atual = 'pronto' AND novo_status_nome NOT IN ('entregue', 'cancelado')) OR
+     (status_atual = 'entregue' AND novo_status_nome != 'finalizado') THEN
+    RAISE EXCEPTION 'Transição de status inválida de % para %', status_atual, novo_status_nome;
   END IF;
 
-  UPDATE pedidos SET status_id = (SELECT id FROM status_pedidos WHERE nome = novo_status),
+  UPDATE pedidos SET status_id = novo_status_id,
     atualizado_em = CURRENT_TIMESTAMP
   WHERE id = pedido_id;
 
-  INSERT INTO logs (usuario_id, acao, descricao)
-  VALUES (
-    (SELECT usuario_id FROM pedidos WHERE id = pedido_id),
-    'trocar_status_pedido',
-    FORMAT('Pedido % alterado de % para %', pedido_id, status_atual, novo_status)
-  );
 END;
 $$ LANGUAGE plpgsql;
 
@@ -212,7 +231,7 @@ BEGIN
   SELECT nome INTO status_nome FROM status_pedidos WHERE id = NEW.status_id;
   INSERT INTO logs (usuario_id, acao, descricao)
   VALUES (NEW.usuario_id, 'alteracao_pedido',
-    FORMAT('Pedido % atualizado para "%s" em %s', NEW.id, status_nome, CURRENT_TIMESTAMP));
+    FORMAT('Pedido %s atualizado para "%s"', NEW.id, status_nome));
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
@@ -290,7 +309,7 @@ BEGIN
   IF NEW.status_id = (SELECT id FROM status_pedidos WHERE nome = 'cancelado') THEN
     INSERT INTO logs (usuario_id, acao, descricao)
     VALUES (NEW.usuario_id, 'cancelamento_pedido',
-      FORMAT('Pedido % cancelado em %s', NEW.id, CURRENT_TIMESTAMP));
+      FORMAT('Pedido %s cancelado em %s', NEW.id, CURRENT_TIMESTAMP));
   END IF;
   RETURN NEW;
 END;
@@ -317,3 +336,9 @@ INSERT INTO estoque (item_id, quantidade) VALUES
   (2, 15),
   (3, 50);
 
+INSERT INTO status_pedidos (nome, descricao) VALUES 
+('em preparo', 'O seu pedido foi aceito por nós e estamos preparando'), 
+('pronto','Seu pedido está pronto e já estamos providenciando a entrega'), 
+('entregue','Pedido entregue para o cliente, pagamento pendente'), 
+('finalizado','Pedido entregue para o cliente e pagamento concluído'),
+('cancelado','Pedido foi cancelado, portanto retirado do processo');

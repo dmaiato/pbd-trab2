@@ -1,49 +1,42 @@
-"use client";
-
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { cookies } from "next/headers";
+import LogoutButton from "../logoutButton";
 
-export default function Header() {
-  const router = useRouter();
-
-  function handleLogout() {
-    // limpas os cookies
-    document.cookie =
-      "isAuthenticated=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-    document.cookie =
-      "isAdmin=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-    router.push("/login");
-  }
-
-  // lê o admin uma vez ao carregar a página (sem estado/rerendering)
-  const adminCookie =
-    typeof document !== "undefined"
-      ? document.cookie.split("; ").find((row) => row.startsWith("isAdmin="))
-      : undefined;
-  const isAdmin = adminCookie?.split("=")[1] === "true";
-
+export default async function Header() {
+  const cookieStore = await cookies();
+  const isAdmin = cookieStore.get("isAdmin")?.value === "true";
   const homeHref = isAdmin ? "/in/admin/dashboard" : "/in/usuario/cardapio";
+
+  const headerOptionStyle =
+    "text-gray-50 font-medium pr-2.5 hover:underline underline-offset-2";
 
   return (
     <header
       className={`h-12 ${
         isAdmin ? "bg-teal-700" : "bg-emerald-500"
-      } flex items-center justify-around`}
+      } flex items-center justify-between px-16`}
     >
-      <div>
-        <Link href={homeHref} className="text-gray-50 font-medium">
+      <div className="flex items-center gap-x-3 divide-x">
+        <Link href={homeHref} className={headerOptionStyle}>
           Home
         </Link>
-        <Link href="/in/pedidos"></Link>
+        {!isAdmin && (
+          <>
+            <Link href="/in/usuario/criar_pedido" className={headerOptionStyle}>
+              Criar pedido
+            </Link>
+            <Link href="/in/usuario/pedidos" className={headerOptionStyle}>
+              Meus pedidos
+            </Link>
+          </>
+        )}
+        {isAdmin && (
+          <Link href="/in/pedidos" className={headerOptionStyle}>
+            Pedidos
+          </Link>
+        )}
       </div>
-      <div className="w-4">
-        <button
-          onClick={handleLogout}
-          className="bg-rose-500 py-1 px-2 rounded-sm text-gray-50 font-medium cursor-pointer"
-        >
-          Logout
-        </button>
-      </div>
+      <LogoutButton />
     </header>
   );
 }

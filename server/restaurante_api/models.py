@@ -29,30 +29,6 @@ class ItensCardapio(models.Model):
         managed = False
         db_table = 'itens_cardapio'
 
-
-class ItensPedido(models.Model):
-    pedido = models.ForeignKey('Pedidos', models.DO_NOTHING)
-    item = models.ForeignKey(ItensCardapio, models.DO_NOTHING)
-    quantidade = models.IntegerField()
-    preco = models.DecimalField(max_digits=10, decimal_places=2)
-    criado_em = models.DateTimeField(blank=True, null=True)
-
-    class Meta:
-        managed = False
-        db_table = 'itens_pedido'
-
-
-class Logs(models.Model):
-    usuario = models.ForeignKey('Usuarios', models.DO_NOTHING, blank=True, null=True)
-    acao = models.CharField(max_length=255)
-    descricao = models.TextField(blank=True, null=True)
-    criado_em = models.DateTimeField(blank=True, null=True)
-
-    class Meta:
-        managed = False
-        db_table = 'logs'
-
-
 class Pedidos(models.Model):
     usuario = models.ForeignKey('Usuarios', models.DO_NOTHING)
     status = models.ForeignKey('StatusPedidos', models.DO_NOTHING, blank=True, null=True)
@@ -64,6 +40,26 @@ class Pedidos(models.Model):
         managed = False
         db_table = 'pedidos'
 
+class ItensPedido(models.Model):
+    pedido = models.ForeignKey(Pedidos, related_name="itens", on_delete=models.CASCADE)
+    item = models.ForeignKey(ItensCardapio, on_delete=models.DO_NOTHING)
+    quantidade = models.IntegerField()
+    preco = models.DecimalField(max_digits=10, decimal_places=2)
+    criado_em = models.DateTimeField(blank=True, null=True)
+
+    class Meta:
+        managed = False
+        db_table = 'itens_pedido'
+
+class Logs(models.Model):
+    usuario = models.ForeignKey('Usuarios', models.DO_NOTHING, blank=True, null=True)
+    acao = models.CharField(max_length=255)
+    descricao = models.TextField(blank=True, null=True)
+    criado_em = models.DateTimeField(blank=True, null=True)
+
+    class Meta:
+        managed = False
+        db_table = 'logs'
 
 class StatusPedidos(models.Model):
     nome = models.CharField(unique=True, max_length=50)
@@ -73,7 +69,6 @@ class StatusPedidos(models.Model):
     class Meta:
         managed = False
         db_table = 'status_pedidos'
-
 
 class Usuarios(models.Model):
     nome = models.CharField(max_length=100)
