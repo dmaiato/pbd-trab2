@@ -48,25 +48,16 @@ pip install -r requirements.txt
 
 #### c) Configure o banco de dados
 
-- Crie o banco de dados PostgreSQL (exemplo: `restaurante_db`)
-- Edite o arquivo `settings.py` com suas credenciais do banco
-
-#### d) Execute as migrações
-
 ```bash
-python manage.py migrate
+cd server/sql
 ```
+- inicie uma sessão psql
+- rode o arquivo (\i db2.sql)
 
-#### e) (Opcional) Popule o banco com dados iniciais
-
-```bash
-python manage.py loaddata fixtures/*.json
-# ou use os scripts SQL em `server/sql/db2.sql`
-```
-
-#### f) Inicie o servidor backend
+#### d) Inicie o servidor backend
 
 ```bash
+cd server
 python manage.py runserver
 ```
 
